@@ -42,7 +42,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 using System.Collections.Generic;
-using System.IO;
 using NGit;
 using NGit.Api;
 using NGit.Api.Errors;
@@ -51,7 +50,6 @@ using NGit.Dircache;
 using NGit.Internal;
 using NGit.Treewalk;
 using NGit.Treewalk.Filter;
-using NGit.Util.IO;
 using Sharpen;
 
 namespace NGit.Api
@@ -99,17 +97,10 @@ namespace NGit.Api
 		/// </summary>
 		/// <returns>a DiffEntry for each path which is different</returns>
 		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
+		/// <exception cref="System.IO.IOException"></exception>
 		public override IList<DiffEntry> Call()
 		{
-			DiffFormatter diffFmt;
-			if (@out != null && !showNameAndStatusOnly)
-			{
-				diffFmt = new DiffFormatter(new BufferedOutputStream(@out));
-			}
-			else
-			{
-				diffFmt = new DiffFormatter(NullOutputStream.INSTANCE);
-			}
+			DiffFormatter diffFmt = new DiffFormatter(new BufferedOutputStream(@out));
 			diffFmt.SetRepository(repo);
 			diffFmt.SetProgressMonitor(monitor);
 			try
@@ -149,6 +140,18 @@ namespace NGit.Api
 					}
 				}
 				diffFmt.SetPathFilter(pathFilter);
+				if (contextLines >= 0)
+				{
+					diffFmt.SetContext(contextLines);
+				}
+				if (destinationPrefix != null)
+				{
+					diffFmt.SetNewPrefix(destinationPrefix);
+				}
+				if (sourcePrefix != null)
+				{
+					diffFmt.SetOldPrefix(sourcePrefix);
+				}
 				IList<DiffEntry> result = diffFmt.Scan(oldTree, newTree);
 				if (showNameAndStatusOnly)
 				{
@@ -156,26 +159,10 @@ namespace NGit.Api
 				}
 				else
 				{
-					if (contextLines >= 0)
-					{
-						diffFmt.SetContext(contextLines);
-					}
-					if (destinationPrefix != null)
-					{
-						diffFmt.SetNewPrefix(destinationPrefix);
-					}
-					if (sourcePrefix != null)
-					{
-						diffFmt.SetOldPrefix(sourcePrefix);
-					}
 					diffFmt.Format(result);
 					diffFmt.Flush();
 					return result;
 				}
-			}
-			catch (IOException e)
-			{
-				throw new JGitInternalException(e.Message, e);
 			}
 			finally
 			{

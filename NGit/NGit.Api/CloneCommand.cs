@@ -90,17 +90,13 @@ namespace NGit.Api
 		/// <code>Clone</code>
 		/// command.
 		/// </summary>
+		/// <exception cref="NGit.Api.Errors.JGitInternalException">if the repository can't be created
+		/// 	</exception>
 		/// <returns>
 		/// the newly created
 		/// <code>Git</code>
 		/// object with associated repository
 		/// </returns>
-		/// <exception cref="NGit.Api.Errors.InvalidRemoteException">NGit.Api.Errors.InvalidRemoteException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.TransportException">NGit.Api.Errors.TransportException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.GitAPIException">NGit.Api.Errors.GitAPIException
-		/// 	</exception>
 		public override Git Call()
 		{
 			try
@@ -118,14 +114,16 @@ namespace NGit.Api
 			{
 				throw new JGitInternalException(ioe.Message, ioe);
 			}
-			catch (URISyntaxException)
+			catch (InvalidRemoteException e)
 			{
-				throw new InvalidRemoteException(MessageFormat.Format(JGitText.Get().invalidRemote
-					, remote));
+				throw new JGitInternalException(e.Message, e);
+			}
+			catch (URISyntaxException e)
+			{
+				throw new JGitInternalException(e.Message, e);
 			}
 		}
 
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
 		private Repository Init(URIish u)
 		{
 			InitCommand command = Git.Init();
@@ -144,9 +142,9 @@ namespace NGit.Api
 		}
 
 		/// <exception cref="Sharpen.URISyntaxException"></exception>
-		/// <exception cref="NGit.Api.Errors.TransportException"></exception>
+		/// <exception cref="NGit.Api.Errors.JGitInternalException"></exception>
+		/// <exception cref="NGit.Api.Errors.InvalidRemoteException"></exception>
 		/// <exception cref="System.IO.IOException"></exception>
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
 		private FetchResult Fetch(Repository clonedRepo, URIish u)
 		{
 			// create the remote config and save it
@@ -198,10 +196,10 @@ namespace NGit.Api
 			return specs;
 		}
 
+		/// <exception cref="NGit.Api.Errors.JGitInternalException"></exception>
 		/// <exception cref="NGit.Errors.MissingObjectException"></exception>
 		/// <exception cref="NGit.Errors.IncorrectObjectTypeException"></exception>
 		/// <exception cref="System.IO.IOException"></exception>
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
 		private void Checkout(Repository clonedRepo, FetchResult result)
 		{
 			Ref head = result.GetAdvertisedRef(branch);
@@ -243,7 +241,6 @@ namespace NGit.Api
 		}
 
 		/// <exception cref="System.IO.IOException"></exception>
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
 		private void CloneSubmodules(Repository clonedRepo)
 		{
 			SubmoduleInitCommand init = new SubmoduleInitCommand(clonedRepo);
@@ -262,14 +259,7 @@ namespace NGit.Api
 					Repository subRepo = walk.GetRepository();
 					if (subRepo != null)
 					{
-						try
-						{
-							CloneSubmodules(subRepo);
-						}
-						finally
-						{
-							subRepo.Close();
-						}
+						CloneSubmodules(subRepo);
 					}
 				}
 			}

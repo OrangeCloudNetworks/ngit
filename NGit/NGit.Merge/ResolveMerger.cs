@@ -95,13 +95,13 @@ namespace NGit.Merge
 		private IDictionary<string, DirCacheEntry> toBeCheckedOut = new Dictionary<string
 			, DirCacheEntry>();
 
-		private IList<string> toBeDeleted = new AList<string>();
-
 		private IDictionary<string, MergeResult<Sequence>> mergeResults = new Dictionary<
 			string, MergeResult<Sequence>>();
 
 		private IDictionary<string, ResolveMerger.MergeFailureReason> failingPaths = new 
 			Dictionary<string, ResolveMerger.MergeFailureReason>();
+
+		private ObjectInserter oi;
 
 		private bool enterSubtree;
 
@@ -122,6 +122,7 @@ namespace NGit.Merge
 				.HISTOGRAM);
 			mergeAlgorithm = new MergeAlgorithm(DiffAlgorithm.GetAlgorithm(diffAlg));
 			commitNames = new string[] { "BASE", "OURS", "THEIRS" };
+			oi = GetObjectInserter();
 			this.inCore = inCore;
 			if (inCore)
 			{
@@ -173,10 +174,6 @@ namespace NGit.Merge
 				}
 				if (!inCore)
 				{
-					// No problem found. The only thing left to be done is to
-					// checkout all files from "theirs" which have been selected to
-					// go into the new index.
-					Checkout();
 					// All content-merges are successfully done. If we can now write the
 					// new index we are on quite safe ground. Even if the checkout of
 					// files coming from "theirs" fails the user can work around such
@@ -187,15 +184,19 @@ namespace NGit.Merge
 						throw new IndexWriteException();
 					}
 					builder = null;
+					// No problem found. The only thing left to be done is to checkout
+					// all files from "theirs" which have been selected to go into the
+					// new index.
+					Checkout();
 				}
 				else
 				{
 					builder.Finish();
 					builder = null;
 				}
-				if (GetUnmergedPaths().IsEmpty() && !Failed())
+				if (GetUnmergedPaths().IsEmpty())
 				{
-					resultTree = dircache.WriteTree(GetObjectInserter());
+					resultTree = dircache.WriteTree(oi);
 					return true;
 				}
 				else
@@ -223,22 +224,19 @@ namespace NGit.Merge
 				foreach (KeyValuePair<string, DirCacheEntry> entry in toBeCheckedOut.EntrySet())
 				{
 					FilePath f = new FilePath(db.WorkTree, entry.Key);
-					CreateDir(f.GetParentFile());
-					DirCacheCheckout.CheckoutEntry(db, f, entry.Value, r);
-					modifiedFiles.AddItem(entry.Key);
-				}
-				// Iterate in reverse so that "folder/file" is deleted before
-				// "folder". Otherwise this could result in a failing path because
-				// of a non-empty directory, for which delete() would fail.
-				for (int i = toBeDeleted.Count - 1; i >= 0; i--)
-				{
-					string fileName = toBeDeleted[i];
-					FilePath f = new FilePath(db.WorkTree, fileName);
-					if (!f.Delete())
+					if (entry.Value != null)
 					{
-						failingPaths.Put(fileName, ResolveMerger.MergeFailureReason.COULD_NOT_DELETE);
+						CreateDir(f.GetParentFile());
+						DirCacheCheckout.CheckoutEntry(db, f, entry.Value, r);
 					}
-					modifiedFiles.AddItem(fileName);
+					else
+					{
+						if (!f.Delete())
+						{
+							failingPaths.Put(entry.Key, ResolveMerger.MergeFailureReason.COULD_NOT_DELETE);
+						}
+					}
+					modifiedFiles.AddItem(entry.Key);
 				}
 			}
 			finally
@@ -312,40 +310,18 @@ namespace NGit.Merge
 		/// <param name="path"></param>
 		/// <param name="p"></param>
 		/// <param name="stage"></param>
-		/// <param name="lastMod"></param>
-		/// <param name="len"></param>
 		/// <returns>the entry which was added to the index</returns>
-		private DirCacheEntry Add(byte[] path, CanonicalTreeParser p, int stage, long lastMod
-			, long len)
+		private DirCacheEntry Add(byte[] path, CanonicalTreeParser p, int stage)
 		{
 			if (p != null && !p.EntryFileMode.Equals(FileMode.TREE))
 			{
 				DirCacheEntry e = new DirCacheEntry(path, stage);
 				e.FileMode = p.EntryFileMode;
 				e.SetObjectId(p.EntryObjectId);
-				e.LastModified = lastMod;
-				e.SetLength(len);
 				builder.Add(e);
 				return e;
 			}
 			return null;
-		}
-
-		/// <summary>
-		/// adds a entry to the index builder which is a copy of the specified
-		/// DirCacheEntry
-		/// </summary>
-		/// <param name="e">the entry which should be copied</param>
-		/// <returns>the entry which was added to the index</returns>
-		private DirCacheEntry Keep(DirCacheEntry e)
-		{
-			DirCacheEntry newEntry = new DirCacheEntry(e.PathString, e.Stage);
-			newEntry.FileMode = e.FileMode;
-			newEntry.SetObjectId(e.GetObjectId());
-			newEntry.LastModified = e.LastModified;
-			newEntry.SetLength(e.Length);
-			builder.Add(newEntry);
-			return newEntry;
 		}
 
 		/// <summary>Processes one path and tries to merge.</summary>
@@ -407,31 +383,14 @@ namespace NGit.Merge
 			{
 				return false;
 			}
-			DirCacheEntry ourDce = null;
-			if (index == null || index.GetDirCacheEntry() == null)
-			{
-				// create a fake DCE, but only if ours is valid. ours is kept only
-				// in case it is valid, so a null ourDce is ok in all other cases.
-				if (NonTree(modeO))
-				{
-					ourDce = new DirCacheEntry(tw.RawPath);
-					ourDce.SetObjectId(tw.GetObjectId(T_OURS));
-					ourDce.FileMode = tw.GetFileMode(T_OURS);
-				}
-			}
-			else
-			{
-				ourDce = index.GetDirCacheEntry();
-			}
 			if (NonTree(modeO) && NonTree(modeT) && tw.IdEqual(T_OURS, T_THEIRS))
 			{
 				// OURS and THEIRS have equal content. Check the file mode
 				if (modeO == modeT)
 				{
 					// content and mode of OURS and THEIRS are equal: it doesn't
-					// matter which one we choose. OURS is chosen. Since the index
-					// is clean (the index matches already OURS) we can keep the existing one
-					Keep(ourDce);
+					// matter which one we choose. OURS is chosen.
+					Add(tw.RawPath, ours, DirCacheEntry.STAGE_0);
 					// no checkout needed!
 					return true;
 				}
@@ -446,30 +405,27 @@ namespace NGit.Merge
 						if (newMode == modeO)
 						{
 							// ours version is preferred
-							Keep(ourDce);
+							Add(tw.RawPath, ours, DirCacheEntry.STAGE_0);
 						}
 						else
 						{
 							// the preferred version THEIRS has a different mode
 							// than ours. Check it out!
-							if (IsWorktreeDirty(work))
+							if (IsWorktreeDirty())
 							{
 								return false;
 							}
-							// we know about length and lastMod only after we have written the new content.
-							// This will happen later. Set these values to 0 for know.
-							DirCacheEntry e = Add(tw.RawPath, theirs, DirCacheEntry.STAGE_0, 0, 0);
+							DirCacheEntry e = Add(tw.RawPath, theirs, DirCacheEntry.STAGE_0);
 							toBeCheckedOut.Put(tw.PathString, e);
 						}
 						return true;
 					}
 					else
 					{
-						// FileModes are not mergeable. We found a conflict on modes.
-						// For conflicting entries we don't know lastModified and length.
-						Add(tw.RawPath, @base, DirCacheEntry.STAGE_1, 0, 0);
-						Add(tw.RawPath, ours, DirCacheEntry.STAGE_2, 0, 0);
-						Add(tw.RawPath, theirs, DirCacheEntry.STAGE_3, 0, 0);
+						// FileModes are not mergeable. We found a conflict on modes
+						Add(tw.RawPath, @base, DirCacheEntry.STAGE_1);
+						Add(tw.RawPath, ours, DirCacheEntry.STAGE_2);
+						Add(tw.RawPath, theirs, DirCacheEntry.STAGE_3);
 						unmergedPaths.AddItem(tw.PathString);
 						mergeResults.Put(tw.PathString, new MergeResult<RawText>(Sharpen.Collections.EmptyList
 							<RawText>()).Upcast ());
@@ -480,8 +436,8 @@ namespace NGit.Merge
 			if (NonTree(modeO) && modeB == modeT && tw.IdEqual(T_BASE, T_THEIRS))
 			{
 				// THEIRS was not changed compared to BASE. All changes must be in
-				// OURS. OURS is chosen. We can keep the existing entry.
-				Keep(ourDce);
+				// OURS. OURS is chosen.
+				Add(tw.RawPath, ours, DirCacheEntry.STAGE_0);
 				// no checkout needed!
 				return true;
 			}
@@ -490,16 +446,13 @@ namespace NGit.Merge
 				// OURS was not changed compared to BASE. All changes must be in
 				// THEIRS. THEIRS is chosen.
 				// Check worktree before checking out THEIRS
-				if (IsWorktreeDirty(work))
+				if (IsWorktreeDirty())
 				{
 					return false;
 				}
 				if (NonTree(modeT))
 				{
-					// we know about length and lastMod only after we have written
-					// the new content.
-					// This will happen later. Set these values to 0 for know.
-					DirCacheEntry e = Add(tw.RawPath, theirs, DirCacheEntry.STAGE_0, 0, 0);
+					DirCacheEntry e = Add(tw.RawPath, theirs, DirCacheEntry.STAGE_0);
 					if (e != null)
 					{
 						toBeCheckedOut.Put(tw.PathString, e);
@@ -512,7 +465,7 @@ namespace NGit.Merge
 					{
 						// we want THEIRS ... but THEIRS contains the deletion of the
 						// file
-						toBeDeleted.AddItem(tw.PathString);
+						toBeCheckedOut.Put(tw.PathString, null);
 						return true;
 					}
 				}
@@ -527,9 +480,9 @@ namespace NGit.Merge
 				{
 					if (NonTree(modeB))
 					{
-						Add(tw.RawPath, @base, DirCacheEntry.STAGE_1, 0, 0);
+						Add(tw.RawPath, @base, DirCacheEntry.STAGE_1);
 					}
-					Add(tw.RawPath, ours, DirCacheEntry.STAGE_2, 0, 0);
+					Add(tw.RawPath, ours, DirCacheEntry.STAGE_2);
 					unmergedPaths.AddItem(tw.PathString);
 					enterSubtree = false;
 					return true;
@@ -538,9 +491,9 @@ namespace NGit.Merge
 				{
 					if (NonTree(modeB))
 					{
-						Add(tw.RawPath, @base, DirCacheEntry.STAGE_1, 0, 0);
+						Add(tw.RawPath, @base, DirCacheEntry.STAGE_1);
 					}
-					Add(tw.RawPath, theirs, DirCacheEntry.STAGE_3, 0, 0);
+					Add(tw.RawPath, theirs, DirCacheEntry.STAGE_3);
 					unmergedPaths.AddItem(tw.PathString);
 					enterSubtree = false;
 					return true;
@@ -559,7 +512,7 @@ namespace NGit.Merge
 			if (NonTree(modeO) && NonTree(modeT))
 			{
 				// Check worktree before modifying files
-				if (IsWorktreeDirty(work))
+				if (IsWorktreeDirty())
 				{
 					return false;
 				}
@@ -580,14 +533,14 @@ namespace NGit.Merge
 					if (((modeO != 0 && !tw.IdEqual(T_BASE, T_OURS)) || (modeT != 0 && !tw.IdEqual(T_BASE
 						, T_THEIRS))))
 					{
-						Add(tw.RawPath, @base, DirCacheEntry.STAGE_1, 0, 0);
-						Add(tw.RawPath, ours, DirCacheEntry.STAGE_2, 0, 0);
-						DirCacheEntry e = Add(tw.RawPath, theirs, DirCacheEntry.STAGE_3, 0, 0);
+						Add(tw.RawPath, @base, DirCacheEntry.STAGE_1);
+						Add(tw.RawPath, ours, DirCacheEntry.STAGE_2);
+						DirCacheEntry e = Add(tw.RawPath, theirs, DirCacheEntry.STAGE_3);
 						// OURS was deleted checkout THEIRS
 						if (modeO == 0)
 						{
 							// Check worktree before checking out THEIRS
-							if (IsWorktreeDirty(work))
+							if (IsWorktreeDirty())
 							{
 								return false;
 							}
@@ -639,7 +592,7 @@ namespace NGit.Merge
 			int modeI = tw.GetRawMode(T_INDEX);
 			int modeO = tw.GetRawMode(T_OURS);
 			// Index entry has to match ours to be considered clean
-			bool isDirty = NonTree(modeI) && !(modeO == modeI && tw.IdEqual(T_INDEX, T_OURS));
+			bool isDirty = NonTree(modeI) && !(tw.IdEqual(T_INDEX, T_OURS) && modeO == modeI);
 			if (isDirty)
 			{
 				failingPaths.Put(tw.PathString, ResolveMerger.MergeFailureReason.DIRTY_INDEX);
@@ -647,20 +600,16 @@ namespace NGit.Merge
 			return isDirty;
 		}
 
-		private bool IsWorktreeDirty(WorkingTreeIterator work)
+		private bool IsWorktreeDirty()
 		{
-			if (inCore || work == null)
+			if (inCore)
 			{
 				return false;
 			}
 			int modeF = tw.GetRawMode(T_FILE);
 			int modeO = tw.GetRawMode(T_OURS);
 			// Worktree entry has to match ours to be considered clean
-			bool isDirty = work.IsModeDifferent(modeO);
-			if (!isDirty && NonTree(modeF))
-			{
-				isDirty = !tw.IdEqual(T_FILE, T_OURS);
-			}
+			bool isDirty = NonTree(modeF) && !(tw.IdEqual(T_FILE, T_OURS) && modeO == modeF);
 			if (isDirty)
 			{
 				failingPaths.Put(tw.PathString, ResolveMerger.MergeFailureReason.DIRTY_WORKTREE);
@@ -691,9 +640,9 @@ namespace NGit.Merge
 				// a conflict occurred, the file will contain conflict markers
 				// the index will be populated with the three stages and only the
 				// workdir (if used) contains the halfways merged content
-				Add(tw.RawPath, @base, DirCacheEntry.STAGE_1, 0, 0);
-				Add(tw.RawPath, ours, DirCacheEntry.STAGE_2, 0, 0);
-				Add(tw.RawPath, theirs, DirCacheEntry.STAGE_3, 0, 0);
+				Add(tw.RawPath, @base, DirCacheEntry.STAGE_1);
+				Add(tw.RawPath, ours, DirCacheEntry.STAGE_2);
+				Add(tw.RawPath, theirs, DirCacheEntry.STAGE_3);
 				mergeResults.Put(tw.PathString, result.Upcast ());
 			}
 			else
@@ -712,7 +661,7 @@ namespace NGit.Merge
 				InputStream @is = new FileInputStream(of);
 				try
 				{
-					dce.SetObjectId(GetObjectInserter().Insert(Constants.OBJ_BLOB, of.Length(), @is));
+					dce.SetObjectId(oi.Insert(Constants.OBJ_BLOB, of.Length(), @is));
 				}
 				finally
 				{
@@ -753,11 +702,6 @@ namespace NGit.Merge
 					throw new NGit.Errors.NotSupportedException();
 				}
 				of = new FilePath(workTree, tw.PathString);
-				FilePath parentFolder = of.GetParentFile();
-				if (!parentFolder.Exists())
-				{
-					parentFolder.Mkdirs();
-				}
 				fos = new FileOutputStream(of);
 				try
 				{

@@ -50,8 +50,6 @@ using NGit.Errors;
 using NGit.Events;
 using NGit.Internal;
 using NGit.Storage.File;
-using NGit.Treewalk;
-using NGit.Treewalk.Filter;
 using NGit.Util;
 using NGit.Util.IO;
 using Sharpen;
@@ -83,9 +81,9 @@ namespace NGit.Dircache
 
 		private static readonly byte[] NO_CHECKSUM = new byte[] {  };
 
-		private sealed class _IComparer_109 : IComparer<DirCacheEntry>
+		private sealed class _IComparer_103 : IComparer<DirCacheEntry>
 		{
-			public _IComparer_109()
+			public _IComparer_103()
 			{
 			}
 
@@ -100,7 +98,7 @@ namespace NGit.Dircache
 			}
 		}
 
-		internal static readonly IComparer<DirCacheEntry> ENT_CMP = new _IComparer_109();
+		internal static readonly IComparer<DirCacheEntry> ENT_CMP = new _IComparer_103();
 
 		internal static int Cmp(DirCacheEntry a, DirCacheEntry b)
 		{
@@ -136,32 +134,6 @@ namespace NGit.Dircache
 		public static NGit.Dircache.DirCache NewInCore()
 		{
 			return new NGit.Dircache.DirCache(null, null);
-		}
-
-		/// <summary>Create a new in-core index representation and read an index from disk.</summary>
-		/// <remarks>
-		/// Create a new in-core index representation and read an index from disk.
-		/// <p>
-		/// The new index will be read before it is returned to the caller. Read
-		/// failures are reported as exceptions and therefore prevent the method from
-		/// returning a partially populated index.
-		/// </remarks>
-		/// <param name="repository">repository containing the index to read</param>
-		/// <returns>
-		/// a cache representing the contents of the specified index file (if
-		/// it exists) or an empty cache if the file does not exist.
-		/// </returns>
-		/// <exception cref="System.IO.IOException">the index file is present but could not be read.
-		/// 	</exception>
-		/// <exception cref="NGit.Errors.CorruptObjectException">
-		/// the index file is using a format or extension that this
-		/// library does not support.
-		/// </exception>
-		public static NGit.Dircache.DirCache Read(Repository repository)
-		{
-			NGit.Dircache.DirCache c = Read(repository.GetIndexFile(), repository.FileSystem);
-			c.repository = repository;
-			return c;
 		}
 
 		/// <summary>Create a new in-core index representation and read an index from disk.</summary>
@@ -258,40 +230,6 @@ namespace NGit.Dircache
 		/// the method from returning a partially populated index. On read failure,
 		/// the lock is released.
 		/// </remarks>
-		/// <param name="repository">repository containing the index to lock and read</param>
-		/// <param name="indexChangedListener">listener to be informed when DirCache is committed
-		/// 	</param>
-		/// <returns>
-		/// a cache representing the contents of the specified index file (if
-		/// it exists) or an empty cache if the file does not exist.
-		/// </returns>
-		/// <exception cref="System.IO.IOException">
-		/// the index file is present but could not be read, or the lock
-		/// could not be obtained.
-		/// </exception>
-		/// <exception cref="NGit.Errors.CorruptObjectException">
-		/// the index file is using a format or extension that this
-		/// library does not support.
-		/// </exception>
-		/// <since>2.0</since>
-		public static NGit.Dircache.DirCache Lock(Repository repository, IndexChangedListener
-			 indexChangedListener)
-		{
-			NGit.Dircache.DirCache c = Lock(repository.GetIndexFile(), repository.FileSystem, 
-				indexChangedListener);
-			c.repository = repository;
-			return c;
-		}
-
-		/// <summary>Create a new in-core index representation, lock it, and read from disk.</summary>
-		/// <remarks>
-		/// Create a new in-core index representation, lock it, and read from disk.
-		/// <p>
-		/// The new index will be locked and then read before it is returned to the
-		/// caller. Read failures are reported as exceptions and therefore prevent
-		/// the method from returning a partially populated index. On read failure,
-		/// the lock is released.
-		/// </remarks>
 		/// <param name="indexLocation">location of the index file on disk.</param>
 		/// <param name="fs">
 		/// the file system abstraction which will be necessary to perform
@@ -356,9 +294,6 @@ namespace NGit.Dircache
 
 		/// <summary>listener to be informed on commit</summary>
 		private IndexChangedListener indexChangedListener;
-
-		/// <summary>Repository containing this index</summary>
-		private Repository repository;
 
 		/// <summary>Create a new in-core index representation.</summary>
 		/// <remarks>
@@ -526,7 +461,7 @@ namespace NGit.Dircache
 				if (ver != 2)
 				{
 					throw new CorruptObjectException(MessageFormat.Format(JGitText.Get().unknownDIRCVersion
-						, Sharpen.Extensions.ValueOf(ver)));
+						, ver));
 				}
 			}
 			entryCnt = NB.DecodeInt32(hdr, 8);
@@ -534,9 +469,6 @@ namespace NGit.Dircache
 			{
 				throw new CorruptObjectException(JGitText.Get().DIRCHasTooManyEntries);
 			}
-			snapshot = FileSnapshot.Save(liveFile);
-			int smudge_s = (int)(snapshot.LastModified() / 1000);
-			int smudge_ns = ((int)(snapshot.LastModified() % 1000)) * 1000000;
 			// Load the individual file entries.
 			//
 			int infoLength = DirCacheEntry.GetMaximumInfoLength(extended);
@@ -545,8 +477,9 @@ namespace NGit.Dircache
 			MutableInteger infoAt = new MutableInteger();
 			for (int i = 0; i < entryCnt; i++)
 			{
-				sortedEntries[i] = new DirCacheEntry(infos, infoAt, @in, md, smudge_s, smudge_ns);
+				sortedEntries[i] = new DirCacheEntry(infos, infoAt, @in, md);
 			}
+			snapshot = FileSnapshot.Save(liveFile);
 			// After the file entries are index extensions, and then a footer.
 			//
 			for (; ; )
@@ -570,7 +503,7 @@ namespace NGit.Dircache
 						if (int.MaxValue < sz)
 						{
 							throw new CorruptObjectException(MessageFormat.Format(JGitText.Get().DIRCExtensionIsTooLargeAt
-								, FormatExtensionName(hdr), Sharpen.Extensions.ValueOf(sz)));
+								, FormatExtensionName(hdr), sz));
 						}
 						byte[] raw = new byte[(int)sz];
 						IOUtil.ReadFully(@in, raw, 0, raw.Length);
@@ -621,7 +554,7 @@ namespace NGit.Dircache
 				if (n < 0)
 				{
 					throw new EOFException(MessageFormat.Format(JGitText.Get().shortReadOfOptionalDIRCExtensionExpectedAnotherBytes
-						, FormatExtensionName(hdr), Sharpen.Extensions.ValueOf(sz)));
+						, FormatExtensionName(hdr), sz));
 				}
 				md.Update(b, 0, n);
 				sz -= n;
@@ -742,42 +675,31 @@ namespace NGit.Dircache
 			NB.EncodeInt32(tmp, 8, entryCnt);
 			dos.Write(tmp, 0, 12);
 			// Write the individual file entries.
-			int smudge_s;
-			int smudge_ns;
-			if (myLock != null)
+			//
+			if (snapshot == null)
 			{
-				// For new files we need to smudge the index entry
-				// if they have been modified "now". Ideally we'd
-				// want the timestamp when we're done writing the index,
-				// so we use the current timestamp as a approximation.
-				myLock.CreateCommitSnapshot();
-				snapshot = myLock.GetCommitSnapshot();
-				smudge_s = (int)(snapshot.LastModified() / 1000);
-				smudge_ns = ((int)(snapshot.LastModified() % 1000)) * 1000000;
+				// Write a new index, as no entries require smudging.
+				//
+				for (int i_1 = 0; i_1 < entryCnt; i_1++)
+				{
+					sortedEntries[i_1].Write(dos);
+				}
 			}
 			else
 			{
-				// Used in unit tests only
-				smudge_ns = 0;
-				smudge_s = 0;
-			}
-			// Check if tree is non-null here since calling updateSmudgedEntries
-			// will automatically build it via creating a DirCacheIterator
-			bool writeTree = tree != null;
-			if (repository != null && entryCnt > 0)
-			{
-				UpdateSmudgedEntries();
-			}
-			for (int i_1 = 0; i_1 < entryCnt; i_1++)
-			{
-				DirCacheEntry e = sortedEntries[i_1];
-				if (e.MightBeRacilyClean(smudge_s, smudge_ns))
+				int smudge_s = (int)(snapshot.LastModified() / 1000);
+				int smudge_ns = ((int)(snapshot.LastModified() % 1000)) * 1000000;
+				for (int i_1 = 0; i_1 < entryCnt; i_1++)
 				{
-					e.SmudgeRacilyClean();
+					DirCacheEntry e = sortedEntries[i_1];
+					if (e.MightBeRacilyClean(smudge_s, smudge_ns))
+					{
+						e.SmudgeRacilyClean();
+					}
+					e.Write(dos);
 				}
-				e.Write(dos);
 			}
-			if (writeTree)
+			if (tree != null)
 			{
 				TemporaryBuffer bb = new TemporaryBuffer.LocalFile();
 				tree.Write(tmp, bb);
@@ -1095,58 +1017,6 @@ namespace NGit.Dircache
 		private void RegisterIndexChangedListener(IndexChangedListener listener)
 		{
 			this.indexChangedListener = listener;
-		}
-
-		/// <summary>Update any smudged entries with information from the working tree.</summary>
-		/// <remarks>Update any smudged entries with information from the working tree.</remarks>
-		/// <exception cref="System.IO.IOException">System.IO.IOException</exception>
-		private void UpdateSmudgedEntries()
-		{
-			TreeWalk walk = new TreeWalk(repository);
-			IList<string> paths = new AList<string>(128);
-			try
-			{
-				for (int i = 0; i < entryCnt; i++)
-				{
-					if (sortedEntries[i].IsSmudged)
-					{
-						paths.AddItem(sortedEntries[i].PathString);
-					}
-				}
-				if (paths.IsEmpty())
-				{
-					return;
-				}
-				walk.Filter = PathFilterGroup.CreateFromStrings(paths);
-				DirCacheIterator iIter = new DirCacheIterator(this);
-				FileTreeIterator fIter = new FileTreeIterator(repository);
-				walk.AddTree(iIter);
-				walk.AddTree(fIter);
-				walk.Recursive = true;
-				while (walk.Next())
-				{
-					iIter = walk.GetTree<DirCacheIterator>(0);
-					if (iIter == null)
-					{
-						continue;
-					}
-					fIter = walk.GetTree<FileTreeIterator>(1);
-					if (fIter == null)
-					{
-						continue;
-					}
-					DirCacheEntry entry = iIter.GetDirCacheEntry();
-					if (entry.IsSmudged && iIter.IdEqual(fIter))
-					{
-						entry.SetLength(fIter.GetEntryLength());
-						entry.LastModified = fIter.GetEntryLastModified();
-					}
-				}
-			}
-			finally
-			{
-				walk.Release();
-			}
 		}
 	}
 }

@@ -104,9 +104,8 @@ namespace NGit.Api
 		/// method twice on an instance.
 		/// </summary>
 		/// <returns>an iteration over RevCommits</returns>
-		/// <exception cref="NGit.Api.Errors.NoHeadException">of the references ref cannot be resolved
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
+		/// <exception cref="NGit.Api.Errors.NoHeadException"></exception>
+		/// <exception cref="NGit.Api.Errors.JGitInternalException"></exception>
 		public override Iterable<RevCommit> Call()
 		{
 			CheckCallable();

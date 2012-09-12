@@ -86,8 +86,6 @@ namespace NGit.Transport
 
 		private FetchConnection conn;
 
-		private IDictionary<string, Ref> localRefs;
-
 		internal FetchProcess(NGit.Transport.Transport t, ICollection<RefSpec> f)
 		{
 			transport = t;
@@ -102,7 +100,6 @@ namespace NGit.Transport
 			localUpdates.Clear();
 			fetchHeadUpdates.Clear();
 			packLocks.Clear();
-			localRefs = null;
 			try
 			{
 				ExecuteImp(monitor, result);
@@ -208,8 +205,6 @@ namespace NGit.Transport
 			{
 				CloseConnection(result);
 			}
-			BatchRefUpdate batch = transport.local.RefDatabase.NewBatchUpdate().SetAllowNonFastForwards
-				(true).SetRefLogMessage("fetch", true);
 			RevWalk walk = new RevWalk(transport.local);
 			try
 			{
@@ -217,43 +212,26 @@ namespace NGit.Transport
 				{
 					((BatchingProgressMonitor)monitor).SetDelayStart(250, TimeUnit.MILLISECONDS);
 				}
+				monitor.BeginTask(JGitText.Get().updatingReferences, localUpdates.Count);
 				if (transport.IsRemoveDeletedRefs())
 				{
-					DeleteStaleTrackingRefs(result, batch);
+					DeleteStaleTrackingRefs(result, walk);
 				}
 				foreach (TrackingRefUpdate u in localUpdates)
 				{
-					result.Add(u);
-					batch.AddCommand(u.AsReceiveCommand());
-				}
-				foreach (ReceiveCommand cmd in batch.GetCommands())
-				{
-					cmd.UpdateType(walk);
-					if (cmd.GetType() == ReceiveCommand.Type.UPDATE_NONFASTFORWARD && cmd is TrackingRefUpdate.Command
-						 && !((TrackingRefUpdate.Command)cmd).CanForceUpdate())
+					try
 					{
-						cmd.SetResult(ReceiveCommand.Result.REJECTED_NONFASTFORWARD);
+						monitor.Update(1);
+						u.Update(walk);
+						result.Add(u);
+					}
+					catch (IOException err)
+					{
+						throw new TransportException(MessageFormat.Format(JGitText.Get().failureUpdatingTrackingRef
+							, u.GetLocalName(), err.Message), err);
 					}
 				}
-				if (transport.IsDryRun())
-				{
-					foreach (ReceiveCommand cmd_1 in batch.GetCommands())
-					{
-						if (cmd_1.GetResult() == ReceiveCommand.Result.NOT_ATTEMPTED)
-						{
-							cmd_1.SetResult(ReceiveCommand.Result.OK);
-						}
-					}
-				}
-				else
-				{
-					batch.Execute(walk, monitor);
-				}
-			}
-			catch (IOException err)
-			{
-				throw new TransportException(MessageFormat.Format(JGitText.Get().failureUpdatingTrackingRef
-					, GetFirstFailedRefName(batch), err.Message), err);
+				monitor.EndTask();
 			}
 			finally
 			{
@@ -416,7 +394,7 @@ namespace NGit.Transport
 					{
 						ow.MarkStart(ow.ParseAny(want));
 					}
-					foreach (Ref @ref in LocalRefs().Values)
+					foreach (Ref @ref in transport.local.GetAllRefs().Values)
 					{
 						ow.MarkUninteresting(ow.ParseAny(@ref.GetObjectId()));
 					}
@@ -469,7 +447,7 @@ namespace NGit.Transport
 		private ICollection<Ref> ExpandAutoFollowTags()
 		{
 			ICollection<Ref> additionalTags = new AList<Ref>();
-			IDictionary<string, Ref> haveRefs = LocalRefs();
+			IDictionary<string, Ref> haveRefs = transport.local.GetAllRefs();
 			foreach (Ref r in conn.GetRefs())
 			{
 				if (!IsTag(r))
@@ -520,7 +498,7 @@ namespace NGit.Transport
 		/// <exception cref="NGit.Errors.TransportException"></exception>
 		private void ExpandFetchTags()
 		{
-			IDictionary<string, Ref> haveRefs = LocalRefs();
+			IDictionary<string, Ref> haveRefs = transport.local.GetAllRefs();
 			foreach (Ref r in conn.GetRefs())
 			{
 				if (!IsTag(r))
@@ -547,12 +525,22 @@ namespace NGit.Transport
 			ObjectId newId = src.GetObjectId();
 			if (spec.GetDestination() != null)
 			{
-				TrackingRefUpdate tru = CreateUpdate(spec, newId);
-				if (newId.Equals(tru.GetOldObjectId()))
+				try
 				{
-					return;
+					TrackingRefUpdate tru = CreateUpdate(spec, newId);
+					if (newId.Equals(tru.GetOldObjectId()))
+					{
+						return;
+					}
+					localUpdates.AddItem(tru);
 				}
-				localUpdates.AddItem(tru);
+				catch (IOException err)
+				{
+					// Bad symbolic ref? That is the most likely cause.
+					//
+					throw new TransportException(MessageFormat.Format(JGitText.Get().cannotResolveLocalTrackingRefForUpdating
+						, spec.GetDestination()), err);
+				}
 			}
 			askFor.Put(newId, src);
 			FetchHeadRecord fhr = new FetchHeadRecord();
@@ -563,37 +551,17 @@ namespace NGit.Transport
 			fetchHeadUpdates.AddItem(fhr);
 		}
 
-		/// <exception cref="NGit.Errors.TransportException"></exception>
+		/// <exception cref="System.IO.IOException"></exception>
 		private TrackingRefUpdate CreateUpdate(RefSpec spec, ObjectId newId)
 		{
-			Ref @ref = LocalRefs().Get(spec.GetDestination());
-			ObjectId oldId = @ref != null && @ref.GetObjectId() != null ? @ref.GetObjectId() : 
-				ObjectId.ZeroId;
-			return new TrackingRefUpdate(spec.IsForceUpdate(), spec.GetSource(), spec.GetDestination
-				(), oldId, newId);
+			return new TrackingRefUpdate(transport.local, spec, newId, "fetch");
 		}
 
 		/// <exception cref="NGit.Errors.TransportException"></exception>
-		private IDictionary<string, Ref> LocalRefs()
+		private void DeleteStaleTrackingRefs(FetchResult result, RevWalk walk)
 		{
-			if (localRefs == null)
-			{
-				try
-				{
-					localRefs = transport.local.RefDatabase.GetRefs(RefDatabase.ALL);
-				}
-				catch (IOException err)
-				{
-					throw new TransportException(JGitText.Get().cannotListRefs, err);
-				}
-			}
-			return localRefs;
-		}
-
-		/// <exception cref="System.IO.IOException"></exception>
-		private void DeleteStaleTrackingRefs(FetchResult result, BatchRefUpdate batch)
-		{
-			foreach (Ref @ref in LocalRefs().Values)
+			Repository db = transport.local;
+			foreach (Ref @ref in db.GetAllRefs().Values)
 			{
 				string refname = @ref.GetName();
 				foreach (RefSpec spec in toFetch)
@@ -603,24 +571,50 @@ namespace NGit.Transport
 						RefSpec s = spec.ExpandFromDestination(refname);
 						if (result.GetAdvertisedRef(s.GetSource()) == null)
 						{
-							DeleteTrackingRef(result, batch, s, @ref);
+							DeleteTrackingRef(result, db, walk, s, @ref);
 						}
 					}
 				}
 			}
 		}
 
-		private void DeleteTrackingRef(FetchResult result, BatchRefUpdate batch, RefSpec 
-			spec, Ref localRef)
+		/// <exception cref="NGit.Errors.TransportException"></exception>
+		private void DeleteTrackingRef(FetchResult result, Repository db, RevWalk walk, RefSpec
+			 spec, Ref localRef)
 		{
-			if (localRef.GetObjectId() == null)
+			string name = localRef.GetName();
+			try
 			{
-				return;
+				TrackingRefUpdate u = new TrackingRefUpdate(db, name, spec.GetSource(), true, ObjectId
+					.ZeroId, "deleted");
+				result.Add(u);
+				if (transport.IsDryRun())
+				{
+					return;
+				}
+				u.Delete(walk);
+				switch (u.GetResult())
+				{
+					case RefUpdate.Result.NEW:
+					case RefUpdate.Result.NO_CHANGE:
+					case RefUpdate.Result.FAST_FORWARD:
+					case RefUpdate.Result.FORCED:
+					{
+						break;
+					}
+
+					default:
+					{
+						throw new TransportException(transport.GetURI(), MessageFormat.Format(JGitText.Get
+							().cannotDeleteStaleTrackingRef2, name, u.GetResult().ToString()));
+					}
+				}
 			}
-			TrackingRefUpdate update = new TrackingRefUpdate(true, spec.GetSource(), localRef
-				.GetName(), localRef.GetObjectId(), ObjectId.ZeroId);
-			result.Add(update);
-			batch.AddCommand(update.AsReceiveCommand());
+			catch (IOException e)
+			{
+				throw new TransportException(transport.GetURI(), MessageFormat.Format(JGitText.Get
+					().cannotDeleteStaleTrackingRef, name), e);
+			}
 		}
 
 		private static bool IsTag(Ref r)
@@ -631,18 +625,6 @@ namespace NGit.Transport
 		private static bool IsTag(string name)
 		{
 			return name.StartsWith(Constants.R_TAGS);
-		}
-
-		private static string GetFirstFailedRefName(BatchRefUpdate batch)
-		{
-			foreach (ReceiveCommand cmd in batch.GetCommands())
-			{
-				if (cmd.GetResult() != ReceiveCommand.Result.OK)
-				{
-					return cmd.GetRefName();
-				}
-			}
-			return string.Empty;
 		}
 	}
 }

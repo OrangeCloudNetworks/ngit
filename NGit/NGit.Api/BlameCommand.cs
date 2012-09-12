@@ -191,7 +191,7 @@ namespace NGit.Api
 		/// introduced into the file path.
 		/// </remarks>
 		/// <returns>list of lines</returns>
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
+		/// <exception cref="NGit.Api.Errors.JGitInternalException"></exception>
 		public override BlameResult Call()
 		{
 			CheckCallable();

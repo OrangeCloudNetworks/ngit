@@ -150,10 +150,6 @@ namespace NGit.Util
 		/// </returns>
 		public abstract bool SupportsExecute();
 
-		/// <summary>Is this file system case sensitive</summary>
-		/// <returns>true if this implementation is case sensitive</returns>
-		public abstract bool IsCaseSensitive();
-
 		/// <summary>Determine if the file is executable (or not).</summary>
 		/// <remarks>
 		/// Determine if the file is executable (or not).
@@ -254,7 +250,7 @@ namespace NGit.Util
 		/// <returns>the user's home directory; null if the user does not have one.</returns>
 		protected internal virtual FilePath UserHomeImpl()
 		{
-			string home = AccessController.DoPrivileged(new _PrivilegedAction_244());
+			string home = AccessController.DoPrivileged(new _PrivilegedAction_237());
 			if (home == null || home.Length == 0)
 			{
 				return null;
@@ -262,9 +258,9 @@ namespace NGit.Util
 			return new FilePath(home).GetAbsoluteFile();
 		}
 
-		private sealed class _PrivilegedAction_244 : PrivilegedAction<string>
+		private sealed class _PrivilegedAction_237 : PrivilegedAction<string>
 		{
-			public _PrivilegedAction_244()
+			public _PrivilegedAction_237()
 			{
 			}
 
@@ -327,7 +323,7 @@ namespace NGit.Util
 					(), encoding));
 				p.GetOutputStream().Close();
 				AtomicBoolean gooblerFail = new AtomicBoolean(false);
-				Sharpen.Thread gobbler = new _Thread_300(p, debug, gooblerFail);
+				Sharpen.Thread gobbler = new _Thread_293(p, debug, gooblerFail);
 				// ignore
 				// Just print on stderr for debugging
 				// Just print on stderr for debugging
@@ -392,9 +388,9 @@ namespace NGit.Util
 			return null;
 		}
 
-		private sealed class _Thread_300 : Sharpen.Thread
+		private sealed class _Thread_293 : Sharpen.Thread
 		{
-			public _Thread_300(SystemProcess p, bool debug, AtomicBoolean gooblerFail)
+			public _Thread_293(SystemProcess p, bool debug, AtomicBoolean gooblerFail)
 			{
 				this.p = p;
 				this.debug = debug;

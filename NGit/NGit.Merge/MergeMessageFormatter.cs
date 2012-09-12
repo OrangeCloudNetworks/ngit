@@ -145,7 +145,7 @@ namespace NGit.Merge
 			)
 		{
 			StringBuilder sb = new StringBuilder(message);
-			if (!message.EndsWith("\n") && message.Length != 0)
+			if (!message.EndsWith("\n"))
 			{
 				sb.Append("\n");
 			}

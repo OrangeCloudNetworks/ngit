@@ -55,10 +55,9 @@ namespace NGit.Transport
 	/// modify the results of the previous hooks in the chain by calling
 	/// <see cref="UploadPack.GetAdvertisedRefs()">UploadPack.GetAdvertisedRefs()</see>
 	/// , or
-	/// <see cref="BaseReceivePack.GetAdvertisedRefs()">BaseReceivePack.GetAdvertisedRefs()
-	/// 	</see>
+	/// <see cref="ReceivePack.GetAdvertisedRefs()">ReceivePack.GetAdvertisedRefs()</see>
 	/// or
-	/// <see cref="BaseReceivePack.GetAdvertisedObjects()">BaseReceivePack.GetAdvertisedObjects()
+	/// <see cref="ReceivePack.GetAdvertisedObjects()">ReceivePack.GetAdvertisedObjects()
 	/// 	</see>
 	/// .
 	/// </summary>
@@ -101,7 +100,7 @@ namespace NGit.Transport
 		}
 
 		/// <exception cref="NGit.Transport.ServiceMayNotContinueException"></exception>
-		public override void AdvertiseRefs(BaseReceivePack rp)
+		public override void AdvertiseRefs(ReceivePack rp)
 		{
 			for (int i = 0; i < count; i++)
 			{

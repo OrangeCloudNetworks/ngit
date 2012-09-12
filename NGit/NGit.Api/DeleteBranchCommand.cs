@@ -80,10 +80,9 @@ namespace NGit.Api
 		/// when trying to delete a branch which has not been merged into
 		/// the currently checked out branch without force
 		/// </exception>
-		/// <exception cref="NGit.Api.Errors.CannotDeleteCurrentBranchException">NGit.Api.Errors.CannotDeleteCurrentBranchException
-		/// 	</exception>
 		/// <returns>the list with the (full) names of the deleted branches</returns>
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
+		/// <exception cref="NGit.Api.Errors.JGitInternalException"></exception>
+		/// <exception cref="NGit.Api.Errors.CannotDeleteCurrentBranchException"></exception>
 		public override IList<string> Call()
 		{
 			CheckCallable();

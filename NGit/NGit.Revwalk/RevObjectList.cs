@@ -92,7 +92,7 @@ namespace NGit.Revwalk
 			if (index != size)
 			{
 				throw new NotSupportedException(MessageFormat.Format(JGitText.Get().unsupportedOperationNotAddAtEnd
-					, Sharpen.Extensions.ValueOf(index)));
+					, index));
 			}
 			Set(index, element);
 			size++;

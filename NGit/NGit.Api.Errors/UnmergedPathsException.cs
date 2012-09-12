@@ -41,7 +41,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-using System;
 using NGit.Api.Errors;
 using NGit.Internal;
 using Sharpen;
@@ -55,14 +54,7 @@ namespace NGit.Api.Errors
 		private const long serialVersionUID = 1L;
 
 		/// <summary>The default constructor with a default message</summary>
-		public UnmergedPathsException() : this(null)
-		{
-		}
-
-		/// <summary>The default constructor with a default message</summary>
-		/// <param name="cause">original exception</param>
-		public UnmergedPathsException(Exception cause) : base(JGitText.Get().unmergedPaths
-			, cause)
+		public UnmergedPathsException() : base(JGitText.Get().unmergedPaths)
 		{
 		}
 	}

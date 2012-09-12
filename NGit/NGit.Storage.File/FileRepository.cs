@@ -284,6 +284,8 @@ namespace NGit.Storage.File
 			}
 			cfg.SetBoolean(ConfigConstants.CONFIG_CORE_SECTION, null, ConfigConstants.CONFIG_KEY_LOGALLREFUPDATES
 				, !bare);
+			cfg.SetBoolean(ConfigConstants.CONFIG_CORE_SECTION, null, ConfigConstants.CONFIG_KEY_AUTOCRLF
+				, false);
 			cfg.Save();
 		}
 

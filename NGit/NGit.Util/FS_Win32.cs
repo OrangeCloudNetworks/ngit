@@ -53,14 +53,14 @@ namespace NGit.Util
 	{
 		internal static bool IsWin32()
 		{
-			string osDotName = AccessController.DoPrivileged(new _PrivilegedAction_59());
+			string osDotName = AccessController.DoPrivileged(new _PrivilegedAction_58());
 			return osDotName != null && StringUtils.ToLowerCase(osDotName).IndexOf("windows")
 				 != -1;
 		}
 
-		private sealed class _PrivilegedAction_59 : PrivilegedAction<string>
+		private sealed class _PrivilegedAction_58 : PrivilegedAction<string>
 		{
-			public _PrivilegedAction_59()
+			public _PrivilegedAction_58()
 			{
 			}
 
@@ -94,11 +94,6 @@ namespace NGit.Util
 		}
 
 		public override bool SetExecute(FilePath f, bool canExec)
-		{
-			return false;
-		}
-
-		public override bool IsCaseSensitive()
 		{
 			return false;
 		}

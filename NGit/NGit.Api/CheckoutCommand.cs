@@ -52,7 +52,6 @@ using NGit.Internal;
 using NGit.Revwalk;
 using NGit.Treewalk;
 using NGit.Treewalk.Filter;
-using NGit.Util;
 using Sharpen;
 
 namespace NGit.Api
@@ -97,10 +96,9 @@ namespace NGit.Api
 		/// if the provided name is <code>null</code> or otherwise
 		/// invalid
 		/// </exception>
-		/// <exception cref="NGit.Api.Errors.CheckoutConflictException">if the checkout results in a conflict
-		/// 	</exception>
 		/// <returns>the newly created branch</returns>
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
+		/// <exception cref="NGit.Api.Errors.JGitInternalException"></exception>
+		/// <exception cref="NGit.Api.Errors.CheckoutConflictException"></exception>
 		public override Ref Call()
 		{
 			CheckCallable();
@@ -110,7 +108,7 @@ namespace NGit.Api
 				if (checkoutAllPaths || !paths.IsEmpty())
 				{
 					CheckoutPaths();
-					status = new CheckoutResult(CheckoutResult.Status.OK, paths);
+					status = CheckoutResult.OK_RESULT;
 					SetCallable(false);
 					return null;
 				}
@@ -215,8 +213,7 @@ namespace NGit.Api
 				}
 				else
 				{
-					status = new CheckoutResult(new AList<string>(dco.GetUpdated().Keys), dco.GetRemoved
-						());
+					status = CheckoutResult.OK_RESULT;
 				}
 				return @ref;
 			}
@@ -268,7 +265,6 @@ namespace NGit.Api
 		/// 
 		/// <code>this</code>
 		/// </returns>
-		/// <since>2.0</since>
 		public virtual NGit.Api.CheckoutCommand SetAllPaths(bool all)
 		{
 			checkoutAllPaths = all;
@@ -310,7 +306,7 @@ namespace NGit.Api
 					{
 						ObjectId blobId = startWalk.GetObjectId(0);
 						FileMode mode = startWalk.GetFileMode(0);
-						editor.Add(new _PathEdit_300(this, blobId, mode, workTree, r, startWalk.PathString
+						editor.Add(new _PathEdit_292(this, blobId, mode, workTree, r, startWalk.PathString
 							));
 					}
 					editor.Commit();
@@ -329,9 +325,9 @@ namespace NGit.Api
 			return this;
 		}
 
-		private sealed class _PathEdit_300 : DirCacheEditor.PathEdit
+		private sealed class _PathEdit_292 : DirCacheEditor.PathEdit
 		{
-			public _PathEdit_300(CheckoutCommand _enclosing, ObjectId blobId, FileMode mode, 
+			public _PathEdit_292(CheckoutCommand _enclosing, ObjectId blobId, FileMode mode, 
 				FilePath workTree, ObjectReader r, string baseArg1) : base(baseArg1)
 			{
 				this._enclosing = _enclosing;
@@ -345,12 +341,10 @@ namespace NGit.Api
 			{
 				ent.SetObjectId(blobId);
 				ent.FileMode = mode;
-				FilePath file = new FilePath(workTree, ent.PathString);
-				FilePath parentDir = file.GetParentFile();
 				try
 				{
-					FileUtils.Mkdirs(parentDir, true);
-					DirCacheCheckout.CheckoutEntry(this._enclosing.repo, file, ent, r);
+					DirCacheCheckout.CheckoutEntry(this._enclosing.repo, new FilePath(workTree, ent.PathString
+						), ent, r);
 				}
 				catch (IOException e)
 				{

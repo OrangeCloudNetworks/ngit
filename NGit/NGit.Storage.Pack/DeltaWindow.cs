@@ -166,7 +166,7 @@ namespace NGit.Storage.Pack
 						}
 					}
 					res.Set(toSearch[off]);
-					if (res.@object.IsEdge() || res.@object.DoNotAttemptDelta())
+					if (res.@object.IsEdge())
 					{
 						// We don't actually want to make a delta for
 						// them, just need to push them into the window

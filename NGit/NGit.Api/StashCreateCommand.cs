@@ -65,7 +65,6 @@ namespace NGit.Api
 	/// </remarks>
 	/// <seealso><a href="http://www.kernel.org/pub/software/scm/git/docs/git-stash.html"
 	/// *      >Git documentation about Stash</a></seealso>
-	/// <since>2.0</since>
 	public class StashCreateCommand : GitCommand<RevCommit>
 	{
 		private static readonly string MSG_INDEX = "index on {0}: {1} {2}";
@@ -232,8 +231,8 @@ namespace NGit.Api
 		/// and reset to the current HEAD commit.
 		/// </remarks>
 		/// <returns>stashed commit or null if no changes to stash</returns>
-		/// <exception cref="NGit.Api.Errors.GitAPIException">NGit.Api.Errors.GitAPIException
-		/// 	</exception>
+		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
+		/// <exception cref="NGit.Api.Errors.JGitInternalException"></exception>
 		public override RevCommit Call()
 		{
 			CheckCallable();
@@ -288,7 +287,7 @@ namespace NGit.Api
 							{
 								@in.Close();
 							}
-							wtEdits.AddItem(new _PathEdit_267(entry, entry));
+							wtEdits.AddItem(new _PathEdit_265(entry, entry));
 						}
 						else
 						{
@@ -355,9 +354,9 @@ namespace NGit.Api
 			}
 		}
 
-		private sealed class _PathEdit_267 : DirCacheEditor.PathEdit
+		private sealed class _PathEdit_265 : DirCacheEditor.PathEdit
 		{
-			public _PathEdit_267(DirCacheEntry entry, DirCacheEntry baseArg1) : base(baseArg1
+			public _PathEdit_265(DirCacheEntry entry, DirCacheEntry baseArg1) : base(baseArg1
 				)
 			{
 				this.entry = entry;

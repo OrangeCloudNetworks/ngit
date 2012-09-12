@@ -58,16 +58,16 @@ namespace NGit.Util.IO
 	/// corrupted files without notice.
 	/// </p>
 	/// </remarks>
-	public class SafeBufferedOutputStream : BufferedOutputStream
+	internal class SafeBufferedOutputStream : BufferedOutputStream
 	{
-		/// <seealso cref="Sharpen.BufferedOutputStream.BufferedOutputStream(Sharpen.OutputStream)
+		/// <seealso cref="BufferedOutputStream
 		/// 	">Sharpen.BufferedOutputStream.BufferedOutputStream(Sharpen.OutputStream)</seealso>
 		/// <param name="out">underlying output stream</param>
 		public SafeBufferedOutputStream(OutputStream @out) : base(@out)
 		{
 		}
 
-		/// <seealso cref="Sharpen.BufferedOutputStream.BufferedOutputStream(Sharpen.OutputStream, int)
+		/// <seealso cref="BufferedOutputStream
 		/// 	">Sharpen.BufferedOutputStream.BufferedOutputStream(Sharpen.OutputStream, int)</seealso>
 		/// <param name="out">underlying output stream</param>
 		/// <param name="size">buffer size</param>

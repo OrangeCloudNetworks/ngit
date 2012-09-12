@@ -165,7 +165,7 @@ LOOP_break: ;
 				default:
 				{
 					throw new ArgumentException(MessageFormat.Format(JGitText.Get().unsupportedPackIndexVersion
-						, Sharpen.Extensions.ValueOf(version)));
+						, version));
 				}
 			}
 		}

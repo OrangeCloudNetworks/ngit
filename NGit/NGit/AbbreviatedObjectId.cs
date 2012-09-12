@@ -113,8 +113,7 @@ namespace NGit
 			if (end - offset > Constants.OBJECT_ID_STRING_LENGTH)
 			{
 				throw new ArgumentException(MessageFormat.Format(JGitText.Get().invalidIdLength, 
-					Sharpen.Extensions.ValueOf(end - offset), Sharpen.Extensions.ValueOf(Constants.OBJECT_ID_STRING_LENGTH
-					)));
+					end - offset, Constants.OBJECT_ID_STRING_LENGTH));
 			}
 			return FromHexString(buf, offset, end);
 		}

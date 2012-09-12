@@ -105,10 +105,12 @@ namespace NGit.Api
 		/// </returns>
 		/// <exception cref="NGit.Api.Errors.InvalidRemoteException">when called with an invalid remote uri
 		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.TransportException">when an error occurs with the transport
+		/// <exception cref="NGit.Api.Errors.JGitInternalException">
+		/// a low-level exception of JGit has occurred. The original
+		/// exception can be retrieved by calling
+		/// <see cref="System.Exception.InnerException()">System.Exception.InnerException()</see>
+		/// .
 		/// </exception>
-		/// <exception cref="NGit.Api.Errors.GitAPIException">NGit.Api.Errors.GitAPIException
-		/// 	</exception>
 		public override Iterable<PushResult> Call()
 		{
 			CheckCallable();
@@ -153,9 +155,10 @@ namespace NGit.Api
 						PushResult result = transport.Push(monitor, toPush);
 						pushResults.AddItem(result);
 					}
-					catch (NGit.Errors.TransportException e)
+					catch (TransportException e)
 					{
-						throw new NGit.Errors.TransportException(e.Message, e);
+						throw new JGitInternalException(JGitText.Get().exceptionCaughtDuringExecutionOfPushCommand
+							, e);
 					}
 					finally
 					{

@@ -119,7 +119,6 @@ namespace NGit.Api
 		/// on an instance.
 		/// </summary>
 		/// <returns>the DirCache after Add</returns>
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
 		/// <exception cref="NGit.Api.Errors.NoFilepatternException"></exception>
 		public override DirCache Call()
 		{

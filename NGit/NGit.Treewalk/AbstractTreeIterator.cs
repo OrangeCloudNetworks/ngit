@@ -781,7 +781,6 @@ namespace NGit.Treewalk
 		/// start of name component part within
 		/// <see cref="GetEntryPathBuffer()">GetEntryPathBuffer()</see>
 		/// </returns>
-		/// <since>2.0</since>
 		public virtual int GetNameOffset()
 		{
 			return pathOffset;

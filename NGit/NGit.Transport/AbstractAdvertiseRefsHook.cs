@@ -55,7 +55,6 @@ namespace NGit.Transport
 	/// that advertises the same refs for
 	/// upload-pack and receive-pack.
 	/// </summary>
-	/// <since>2.0</since>
 	public abstract class AbstractAdvertiseRefsHook : AdvertiseRefsHook
 	{
 		/// <exception cref="NGit.Transport.ServiceMayNotContinueException"></exception>
@@ -66,7 +65,7 @@ namespace NGit.Transport
 		}
 
 		/// <exception cref="NGit.Transport.ServiceMayNotContinueException"></exception>
-		public override void AdvertiseRefs(BaseReceivePack receivePack)
+		public override void AdvertiseRefs(ReceivePack receivePack)
 		{
 			IDictionary<string, Ref> refs = GetAdvertisedRefs(receivePack.GetRepository(), receivePack
 				.GetRevWalk());
@@ -92,7 +91,7 @@ namespace NGit.Transport
 		/// <param name="revWalk">open rev walk on the repository.</param>
 		/// <returns>
 		/// set of additional haves; see
-		/// <see cref="BaseReceivePack.GetAdvertisedObjects()">BaseReceivePack.GetAdvertisedObjects()
+		/// <see cref="ReceivePack.GetAdvertisedObjects()">ReceivePack.GetAdvertisedObjects()
 		/// 	</see>
 		/// .
 		/// </returns>

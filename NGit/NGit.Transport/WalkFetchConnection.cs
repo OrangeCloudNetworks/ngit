@@ -775,8 +775,7 @@ namespace NGit.Transport
 			if (!AnyObjectId.Equals(id, act))
 			{
 				throw new TransportException(MessageFormat.Format(JGitText.Get().incorrectHashFor
-					, id.Name, act.Name, Constants.TypeString(type), Sharpen.Extensions.ValueOf(compressed
-					.Length)));
+					, id.Name, act.Name, Constants.TypeString(type), compressed.Length));
 			}
 			inserter.Flush();
 		}

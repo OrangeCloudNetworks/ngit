@@ -1969,7 +1969,7 @@ namespace NGit.Storage.Pack
 					for (int i = 0; i < cmit.ParentCount; i++)
 					{
 						RevCommit p = cmit.GetParent(i);
-						if (!p.Has(added) && !p.Has(RevFlag.UNINTERESTING) && !Exclude(p))
+						if (!p.Has(added) && !p.Has(RevFlag.UNINTERESTING))
 						{
 							p.Add(added);
 							AddObject(p, 0);
@@ -2246,7 +2246,6 @@ namespace NGit.Storage.Pack
 					otp.ClearReuseAsIs();
 				}
 			}
-			otp.SetDeltaAttempted(next.WasDeltaAttempted());
 			otp.Select(next);
 		}
 
@@ -2610,9 +2609,8 @@ namespace NGit.Storage.Pack
 			/// <returns>formatted message string for display to clients.</returns>
 			public virtual string GetMessage()
 			{
-				return MessageFormat.Format(JGitText.Get().packWriterStatistics, Sharpen.Extensions.ValueOf
-					(totalObjects), Sharpen.Extensions.ValueOf(totalDeltas), Sharpen.Extensions.ValueOf
-					(reusedObjects), Sharpen.Extensions.ValueOf(reusedDeltas));
+				return MessageFormat.Format(JGitText.Get().packWriterStatistics, totalObjects, totalDeltas
+					, reusedObjects, reusedDeltas);
 			}
 
 			public Statistics()

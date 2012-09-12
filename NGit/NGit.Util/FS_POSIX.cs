@@ -91,18 +91,6 @@ namespace NGit.Util
 		{
 		}
 
-		public override bool IsCaseSensitive()
-		{
-			if (IsMacOS())
-			{
-				return false;
-			}
-			else
-			{
-				return true;
-			}
-		}
-
 		public override ProcessStartInfo RunInShell(string cmd, string[] args)
 		{
 			IList<string> argv = new AList<string>(4 + args.Length);
@@ -118,13 +106,13 @@ namespace NGit.Util
 
 		private static bool IsMacOS()
 		{
-			string osDotName = AccessController.DoPrivileged(new _PrivilegedAction_111());
-			return "Mac OS X".Equals(osDotName) || "Darwin".Equals(osDotName);
+			string osDotName = AccessController.DoPrivileged(new _PrivilegedAction_103());
+			return "Mac OS X".Equals(osDotName);
 		}
 
-		private sealed class _PrivilegedAction_111 : PrivilegedAction<string>
+		private sealed class _PrivilegedAction_103 : PrivilegedAction<string>
 		{
-			public _PrivilegedAction_111()
+			public _PrivilegedAction_103()
 			{
 			}
 

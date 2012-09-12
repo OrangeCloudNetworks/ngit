@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -31,9 +31,22 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.84.0.0, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
+      <Private>True</Private>
+      <HintPath>..\..\packages\ngit.1.0.0.20110815\lib\net35\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Posix">
+      <HintPath>..\..\packages\ngit.1.0.0.20110815\lib\net35\Mono.Posix.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Security">
+      <HintPath>..\..\packages\ngit.1.0.0.20110815\lib\net35\Mono.Security.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Security.Win32">
+      <HintPath>..\..\packages\ngit.1.0.0.20110815\lib\net35\Mono.Security.Win32.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
-    <Reference Include="ICSharpCode.SharpZipLib" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
@@ -576,11 +589,6 @@
     <Compile Include="NGit.Api\StashDropCommand.cs" />
     <Compile Include="NGit.Storage.File\ReflogWriter.cs" />
     <Compile Include="NGit.Dircache\InvalidPathException.cs" />
-    <Compile Include="NGit\BatchRefUpdate.cs" />
-    <Compile Include="NGit.Api.Errors\TransportException.cs" />
-    <Compile Include="NGit.Merge\SquashMessageFormatter.cs" />
-    <Compile Include="NGit.Transport\BaseReceivePack.cs" />
-    <Compile Include="NGit.Storage.File\GC.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -589,13 +597,20 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Sharpen\Sharpen.csproj">
-      <Project>{72944A6C-45FF-4EF8-B349-8C9CABF519D4}</Project>
-      <Name>Sharpen</Name>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Configuration\LocalConfig.csproj">
+      <Project>{C34CC460-48EA-496E-898D-CC82C833075B}</Project>
+      <Name>LocalConfig</Name>
     </ProjectReference>
     <ProjectReference Include="..\NSch\NSch.csproj">
       <Project>{A19E6F3F-A25B-4B01-8922-CF0CC35C781D}</Project>
       <Name>NSch</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Sharpen\Sharpen.csproj">
+      <Project>{72944A6C-45FF-4EF8-B349-8C9CABF519D4}</Project>
+      <Name>Sharpen</Name>
     </ProjectReference>
   </ItemGroup>
   <ProjectExtensions>
@@ -607,7 +622,4 @@
       </Properties>
     </MonoDevelop>
   </ProjectExtensions>
-  <ItemGroup>
-    <None Include="NGit.Storage.File\ChangeLog" />
-  </ItemGroup>
 </Project>

@@ -66,8 +66,7 @@ namespace NGit.Errors
 		/// </remarks>
 		/// <param name="maxObjectSizeLimit">the maximum object size limit</param>
 		public TooLargeObjectInPackException(long maxObjectSizeLimit) : base(MessageFormat
-			.Format(JGitText.Get().receivePackObjectTooLarge1, Sharpen.Extensions.ValueOf(maxObjectSizeLimit
-			)))
+			.Format(JGitText.Get().receivePackObjectTooLarge1, maxObjectSizeLimit))
 		{
 		}
 
@@ -82,8 +81,8 @@ namespace NGit.Errors
 		/// <param name="objectSize"></param>
 		/// <param name="maxObjectSizeLimit"></param>
 		public TooLargeObjectInPackException(long objectSize, long maxObjectSizeLimit) : 
-			base(MessageFormat.Format(JGitText.Get().receivePackObjectTooLarge2, Sharpen.Extensions.ValueOf
-			(objectSize), Sharpen.Extensions.ValueOf(maxObjectSizeLimit)))
+			base(MessageFormat.Format(JGitText.Get().receivePackObjectTooLarge2, objectSize, 
+			maxObjectSizeLimit))
 		{
 		}
 	}

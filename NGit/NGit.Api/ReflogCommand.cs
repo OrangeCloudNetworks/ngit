@@ -82,11 +82,7 @@ namespace NGit.Api
 			return this;
 		}
 
-		/// <summary>Run the reflog command</summary>
-		/// <exception cref="NGit.Api.Errors.GitAPIException">NGit.Api.Errors.GitAPIException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.InvalidRefNameException">NGit.Api.Errors.InvalidRefNameException
-		/// 	</exception>
+		/// <exception cref="System.Exception"></exception>
 		public override ICollection<ReflogEntry> Call()
 		{
 			CheckCallable();

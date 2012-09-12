@@ -121,7 +121,7 @@ namespace NGit.Api
 			return SubmoduleWalk.ForIndex(repo).SetFilter(filter).Next();
 		}
 
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
+		/// <exception cref="NGit.Api.Errors.JGitInternalException"></exception>
 		public override Repository Call()
 		{
 			CheckCallable();

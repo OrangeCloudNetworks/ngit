@@ -338,14 +338,7 @@ namespace NGit.Dircache
 							}
 							else
 							{
-								// update the timestamp of the index with the one from the
-								// file if not set, as we are sure to be in sync here.
-								DirCacheEntry entry = i.GetDirCacheEntry();
-								if (entry.LastModified == 0)
-								{
-									entry.LastModified = f.GetEntryLastModified();
-								}
-								Keep(entry);
+								Keep(i.GetDirCacheEntry());
 							}
 						}
 						else
@@ -1122,7 +1115,6 @@ namespace NGit.Dircache
 		{
 			ObjectLoader ol = or.Open(entry.GetObjectId());
 			FilePath parentDir = f.GetParentFile();
-			parentDir.Mkdirs();
 			FilePath tmpFile = FilePath.CreateTempFile("._" + f.GetName(), null, parentDir);
 			WorkingTreeOptions opt = repo.GetConfig().Get(WorkingTreeOptions.KEY);
 			FileOutputStream rawChannel = new FileOutputStream(tmpFile);
@@ -1212,9 +1204,9 @@ namespace NGit.Dircache
 
 		private static bool IsValidPathSegment(CanonicalTreeParser t)
 		{
-			string osName = SystemReader.GetInstance().GetProperty("os.name");
-			bool isWindows = "Windows".Equals(osName);
-			bool isOSX = "Darwin".Equals(osName) || "Mac OS X".Equals(osName);
+			bool isWindows = "Windows".Equals(SystemReader.GetInstance().GetProperty("os.name"
+				));
+			bool isOSX = "Mac OS X".Equals(SystemReader.GetInstance().GetProperty("os.name"));
 			bool ignCase = isOSX || isWindows;
 			int ptr = t.GetNameOffset();
 			byte[] raw = t.GetEntryPathBuffer();

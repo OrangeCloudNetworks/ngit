@@ -97,27 +97,7 @@ namespace NGit.Api
 			return this;
 		}
 
-		/// <summary>Execute the SubmoduleUpdateCommand command.</summary>
-		/// <remarks>Execute the SubmoduleUpdateCommand command.</remarks>
-		/// <returns>a collection of updated submodule paths</returns>
-		/// <exception cref="NGit.Api.Errors.ConcurrentRefUpdateException">NGit.Api.Errors.ConcurrentRefUpdateException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.CheckoutConflictException">NGit.Api.Errors.CheckoutConflictException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.InvalidMergeHeadsException">NGit.Api.Errors.InvalidMergeHeadsException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.InvalidConfigurationException">NGit.Api.Errors.InvalidConfigurationException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.NoHeadException">NGit.Api.Errors.NoHeadException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.NoMessageException">NGit.Api.Errors.NoMessageException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.RefNotFoundException">NGit.Api.Errors.RefNotFoundException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.WrongRepositoryStateException">NGit.Api.Errors.WrongRepositoryStateException
-		/// 	</exception>
-		/// <exception cref="NGit.Api.Errors.GitAPIException">NGit.Api.Errors.GitAPIException
-		/// 	</exception>
+		/// <exception cref="NGit.Api.Errors.JGitInternalException"></exception>
 		public override ICollection<string> Call()
 		{
 			CheckCallable();
@@ -156,42 +136,35 @@ namespace NGit.Api
 						}
 						submoduleRepo = clone.Call().GetRepository();
 					}
-					try
+					RevWalk walk = new RevWalk(submoduleRepo);
+					RevCommit commit = walk.ParseCommit(generator.GetObjectId());
+					string update = generator.GetConfigUpdate();
+					if (ConfigConstants.CONFIG_KEY_MERGE.Equals(update))
 					{
-						RevWalk walk = new RevWalk(submoduleRepo);
-						RevCommit commit = walk.ParseCommit(generator.GetObjectId());
-						string update = generator.GetConfigUpdate();
-						if (ConfigConstants.CONFIG_KEY_MERGE.Equals(update))
+						MergeCommand merge = new MergeCommand(submoduleRepo);
+						merge.Include(commit);
+						merge.Call();
+					}
+					else
+					{
+						if (ConfigConstants.CONFIG_KEY_REBASE.Equals(update))
 						{
-							MergeCommand merge = new MergeCommand(submoduleRepo);
-							merge.Include(commit);
-							merge.Call();
+							RebaseCommand rebase = new RebaseCommand(submoduleRepo);
+							rebase.SetUpstream(commit);
+							rebase.Call();
 						}
 						else
 						{
-							if (ConfigConstants.CONFIG_KEY_REBASE.Equals(update))
-							{
-								RebaseCommand rebase = new RebaseCommand(submoduleRepo);
-								rebase.SetUpstream(commit);
-								rebase.Call();
-							}
-							else
-							{
-								// Checkout commit referenced in parent repository's
-								// index as a detached HEAD
-								DirCacheCheckout co = new DirCacheCheckout(submoduleRepo, submoduleRepo.LockDirCache
-									(), commit.Tree);
-								co.SetFailOnConflict(true);
-								co.Checkout();
-								RefUpdate refUpdate = submoduleRepo.UpdateRef(Constants.HEAD, true);
-								refUpdate.SetNewObjectId(commit);
-								refUpdate.ForceUpdate();
-							}
+							// Checkout commit referenced in parent repository's index
+							// as a detached HEAD
+							DirCacheCheckout co = new DirCacheCheckout(submoduleRepo, submoduleRepo.LockDirCache
+								(), commit.Tree);
+							co.SetFailOnConflict(true);
+							co.Checkout();
+							RefUpdate refUpdate = submoduleRepo.UpdateRef(Constants.HEAD, true);
+							refUpdate.SetNewObjectId(commit);
+							refUpdate.ForceUpdate();
 						}
-					}
-					finally
-					{
-						submoduleRepo.Close();
 					}
 					updated.AddItem(generator.GetPath());
 				}
@@ -203,7 +176,11 @@ namespace NGit.Api
 			}
 			catch (ConfigInvalidException e)
 			{
-				throw new InvalidConfigurationException(e.Message, e);
+				throw new JGitInternalException(e.Message, e);
+			}
+			catch (GitAPIException e)
+			{
+				throw new JGitInternalException(e.Message, e);
 			}
 		}
 	}

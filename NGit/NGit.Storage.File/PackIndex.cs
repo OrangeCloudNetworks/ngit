@@ -146,7 +146,7 @@ namespace NGit.Storage.File
 					default:
 					{
 						throw new IOException(MessageFormat.Format(JGitText.Get().unsupportedPackIndexVersion
-							, Sharpen.Extensions.ValueOf(v)));
+							, v));
 					}
 				}
 			}

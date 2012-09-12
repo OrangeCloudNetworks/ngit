@@ -80,7 +80,6 @@ namespace NGit.Api
 		/// if rename is tried without specifying the old name and HEAD
 		/// is detached
 		/// </exception>
-		/// <exception cref="NGit.Api.Errors.GitAPIException"></exception>
 		public override Ref Call()
 		{
 			CheckCallable();

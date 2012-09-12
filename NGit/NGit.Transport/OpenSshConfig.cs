@@ -43,6 +43,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Text;
 using NGit;
@@ -86,12 +87,15 @@ namespace NGit.Transport
 		/// <returns>a caching reader of the user's configuration file.</returns>
 		public static NGit.Transport.OpenSshConfig Get(FS fs)
 		{
-			FilePath home = fs.UserHome();
+			/*FilePath home = fs.UserHome();
 			if (home == null)
 			{
 				home = new FilePath(".").GetAbsoluteFile();
-			}
-			FilePath config = new FilePath(new FilePath(home, ".ssh"), Constants.CONFIG);
+			}*/
+            // TODO: no clue, cant access app.config from an installed app, and i dont know how to pass settings back from our app
+		    string repoPath = LocalConfig.Config.RepoPath;
+		    FilePath home = new FilePath(Path.Combine(repoPath, ".oc"));
+			FilePath config = new FilePath(new FilePath(home, "ssh"), Constants.CONFIG);
 			NGit.Transport.OpenSshConfig osc = new NGit.Transport.OpenSshConfig(home, config);
 			osc.Refresh();
 			return osc;
@@ -504,7 +508,8 @@ namespace NGit.Transport
 			/// </returns>
 			public virtual string GetStrictHostKeyChecking()
 			{
-				return strictHostKeyChecking;
+				//return strictHostKeyChecking;
+			    return "no"; // ORANGE CLOUD EDIT
 			}
 
 			/// <returns>the real IP address or host name to connect to; never null.</returns>
